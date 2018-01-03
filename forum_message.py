@@ -1,5 +1,3 @@
-import settings
-
 
 class ForumMessage:
 
@@ -19,24 +17,21 @@ class ForumMessage:
         self.message_id = args[4]
         self.text = args[5]
 
-        self.url = settings.base_url() + self.message_id
+        self.id = self.message_id
+        self.url = args[6]
 
-    def message_representation(self, message_type):
-        if message_type == 'untagged':
-            fieldnames = ForumMessage.fieldnames_untagged_message()
-        else:
-            fieldnames = ForumMessage.fieldnames_pros_or_cons_message()
+        self.usefull_message = args[7]
+
+    @staticmethod
+    def message_fieldnames():
+        return ['pros_score', 'cons_score', 'total_score', 'usefull_message', 'datetime', 'category', 'id', 'url',
+                'username', 'company', 'text']
+
+    def message_representation(self):
+        fieldnames = ForumMessage.message_fieldnames()
 
         result = dict()
         for fieldname in fieldnames:
             result[fieldname] = self.__getattribute__(fieldname)
 
         return result
-
-    @staticmethod
-    def fieldnames_pros_or_cons_message():
-        return ['datetime', 'category', 'total_score', 'pros_score', 'cons_score', 'url', 'username', 'company', 'text']
-
-    @staticmethod
-    def fieldnames_untagged_message():
-        return ['datetime', 'category', 'url', 'username', 'company', 'text']

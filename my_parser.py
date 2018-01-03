@@ -9,22 +9,18 @@ class MyParser:
     def __init__(self):
         self.messages = []
 
-    def parse_page(self, page):
-        """
-        Наверное в какой-то список словарей парсим страницу
-        :param page:
-        :return:
-        """
+    def parse_page(self, page, crawler):
         self.messages = []  # очистим сообщения перед парсингом новой страницы.
         soup = BeautifulSoup(page.text, 'html5lib')
         category = soup('span', 'topicTitleTheme')[0].text
 
         for message in soup('div', 'topicMessage'):
-            self.parse_message(message, category)
+            self.parse_message(message, category, crawler)
 
-    def parse_message(self, message, category):
+    def parse_message(self, message, category, crawler):
         message_header = message.find('div', 'subject')
 
+        usefull_message = not message_header.find('div', {'class': 'usefulMessageImg'}) is None
         message_score = message_header.contents[3].attrs['title']
         message_author = message_header.contents[5].text.strip()
         message_date = message_header.contents[7].text.strip()
@@ -39,6 +35,8 @@ class MyParser:
             message_date,
             message_id,
             message_text,
+            crawler.current_url_id,
+            usefull_message,
             parser=self
         )
         self.messages.append(message)

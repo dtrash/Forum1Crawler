@@ -5,7 +5,7 @@ def data_directory() -> str:
     :rtype: str
     """
     # TODO нужно создавать все необходимые директории
-    return 'c:/test/1CForumCrawler/'
+    return 'c:/test/1CForumCrawler/v2/'
 
 
 def base_url() -> str:
@@ -65,18 +65,3 @@ def no_next_page_found() -> str:
     """
     return "Пока еще нет такой страницы в этой теме."
 
-
-def cons_score_filter() -> int:
-    """
-    Граница, ничиная с которой сообщение считается негативным.
-    :return: число.
-    """
-    return -10
-
-
-def pros_score_filter() -> int:
-    """
-    Граница, ничиная с которой сообщение считается позитивным.
-    :return: число.
-    """
-    return 10

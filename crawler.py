@@ -4,6 +4,7 @@ from time import sleep
 import requests
 from colorama import Fore
 
+import settings
 from my_parser import MyParser
 from cache import Cache
 from file_io_driver import FileIODriver
@@ -22,7 +23,8 @@ class Crawler:
         self.__session = self.open_session()
         self.cache = Cache()
         self.file_io_driver = FileIODriver()
-        self.next_url_id = int(self.cache.last_id) + 1 if self.cache.last_id else crawl_start_id()
+        self.current_url_id = int(self.cache.last_id) if self.cache.last_id else crawl_start_id()
+        self.current_url = ''
 
     def break_data_load(self) -> bool:
         return True if self.__failures == max_attempts() else False
@@ -40,41 +42,40 @@ class Crawler:
 
         return session
 
-    def load_topic(self, page, full_url):
-        self.next_url_id = self.parser.next_url_id(page)
+    def load_topic(self, page):
         page_index = 1
         while True:
-            self.parser.parse_page(page)
+            self.parser.parse_page(page, self)
             self.file_io_driver.save_messages(self.parser)
-            next_page_url_of_same_topic = full_url.replace('page=0', 'page=' + str(page_index))
+            next_page_url_of_same_topic = settings.base_url() + str(self.current_url_id) + '?page=' + str(page_index)
             page = self.__session.get(next_page_url_of_same_topic)
             if no_next_page_found() in page.text:
                 break
             else:
                 print(Fore.BLUE + 'Найдена новая страница темы')
             page_index += 1
+        self.current_url_id = self.parser.next_url_id(page)
 
     def load_data(self):
-        while self.next_url_id:
+        while self.current_url_id:
             # page=0 - первая страница темы, pageSize=Size5 - 50 сообщений на странице, максимальная порция.
-            full_url = self.__base_url + str(self.next_url_id) + '?page=0&pageSize=Size5'
-            self.cache.last_id = self.next_url_id
+            full_url = self.__base_url + str(self.current_url_id) + '?page=0&pageSize=Size5'
+            self.cache.last_id = self.current_url_id
             page = self.__session.get(full_url)
             if no_page_found() in page.text:
                 print(Fore.RED + 'Страница не найдена')
                 self.__failures += 1
                 # Странная ситуация, битых ссылок в этом алгоритме быть не должно. Но если попали на такую ссылку,
                 # то ищем следующую рабочую перебором.
-                self.next_url_id += 1
+                self.current_url_id += 1
                 sleep(sleep_timer())
             else:
-                print(Fore.WHITE + 'Скачана страница -->', Fore.GREEN + str(self.next_url_id))
-                self.load_topic(page, full_url)
+                print(Fore.WHITE + 'Скачана страница -->', Fore.GREEN + str(self.current_url_id))
+                self.load_topic(page)
                 self.__failures = 0
-                self.cache.last_id = self.next_url_id
             if self.break_data_load():
                 print(Fore.YELLOW + 'Достигнуто максимальное количество попыток. Работа завершена id',
-                      str(self.next_url_id))
+                      str(self.current_url_id))
                 break
         else:
             print(Fore.GREEN + 'Работа успешно завершена')
@@ -82,4 +83,3 @@ class Crawler:
     def save_data(self):
         self.cache.save()
         self.file_io_driver.save_messages(self.parser)
-        self.file_io_driver.close_files()
